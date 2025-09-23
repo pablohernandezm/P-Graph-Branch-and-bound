@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Text?>
+<ScrollPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="App.PNS"
+            fx:id="parentPane"
+            style="-fx-background-color: #111827"
+            stylesheets="@css/app.css"
+            fitToHeight="true" fitToWidth="true"
+>
+    <AnchorPane>
+        <VBox AnchorPane.leftAnchor="0" AnchorPane.bottomAnchor="0" AnchorPane.rightAnchor="0" AnchorPane.topAnchor="0">
+            <!-- Top bar  -->
+            <GridPane styleClass="header" fx:id="header" hgap="20" vgap="20">
+                <columnConstraints>
+                    <ColumnConstraints hgrow="ALWAYS" fx:id="header_col_constraint1"/>
+                    <ColumnConstraints hgrow="NEVER"/>
+                </columnConstraints>
+                <rowConstraints>
+                    <RowConstraints vgrow="ALWAYS"/>
+                    <RowConstraints vgrow="ALWAYS"/>
+                </rowConstraints>
+
+
+                <Text styleClass="h1" GridPane.columnIndex="0">
+                    Process Network Synthesis
+                </Text>
+
+                <HBox styleClass="options" onMouseClicked="#checkHBoxBounds" fx:id="hBox" GridPane.columnIndex="1">
+                    <Button onAction="#loadFile">Load Data</Button>
+                    <Button fx:id="saveBtn">Save Data</Button>
+                </HBox>
+            </GridPane>
+
+            <VBox styleClass="content">
+                <VBox styleClass="section">
+                    <Text styleClass="h2">
+                        Process Network
+                    </Text>
+
+                    <ScrollPane fitToWidth="true" fx:id="canvas_scroll" styleClass="canvas_container">
+                        <HBox fx:id="canvas_container" alignment="TOP_CENTER"/>
+                    </ScrollPane>
+                </VBox>
+
+                <VBox styleClass="section" alignment="CENTER" fx:id="formula_section">
+                    <ScrollPane fitToWidth="true" vbarPolicy="NEVER" fitToHeight="true" minHeight="150">
+                        <VBox>
+                            <VBox fx:id="best_formula" spacing="8"/>
+                        </VBox>
+                    </ScrollPane>
+                </VBox>
+
+                <!-- Operating units -->
+                <VBox styleClass="section" fx:id="ouContainer">
+                    <Text styleClass="h2">
+                        Operating Units
+                    </Text>
+                </VBox>
+
+                <!-- Materials -->
+                <VBox styleClass="section" fx:id="maContainer">
+                    <Text styleClass="h2">
+                        Materials
+                    </Text>
+                </VBox>
+            </VBox>
+        </VBox>
+    </AnchorPane>
+</ScrollPane>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<ScrollPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="App.Controllers.MaterialsTableController"
+            stylesheets="@../css/table.css"
+            minHeight="200"
+>
+    <TableView fx:id="table" fixedCellSize="40">
+        <columns>
+            <TableColumn text="Name" fx:id="nameColumn" sortable="false"/>
+            <TableColumn text="Type" fx:id="typeColumn" sortable="false"/>
+            <TableColumn text="Lower bound" fx:id="flowColumn" sortable="false"/>
+        </columns>
+    </TableView>
+</ScrollPane>
