@@ -20,8 +20,6 @@ dependencies {
     implementation("org.openjfx:javafx-fxml:23-ea+20")
     implementation("org.openjfx:javafx-swing:23-ea+20")
     implementation("org.scilab.forge:jlatexmath:1.0.7")
-
-
 }
 
 tasks.test {

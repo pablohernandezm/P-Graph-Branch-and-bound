@@ -1,2 +1,2 @@
-rootProject.name = "ED20241_PNS"
+rootProject.name = "P-Graph-Branch-and-bound"
 

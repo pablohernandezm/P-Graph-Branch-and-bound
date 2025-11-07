@@ -19,6 +19,8 @@ import javafx.stage.Popup;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 /**
  * PGraph adapted to JavaFX.
@@ -67,7 +69,13 @@ public class FXPGraph extends PGraph {
      * @return Group with the visuals of the graph.
      */
     public Group draw() {
+        Logger logger = Logger.getLogger("FXPGraph.draw");
+        logger.setLevel(Level.INFO);
+
         if (root == null) return null;
+
+
+        logger.info("FXPGraph");
 
         // Clear the pane and set the root node in the middle of the pane.
         treePane.getChildren().clear();

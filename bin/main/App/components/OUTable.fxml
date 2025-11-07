@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<ScrollPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="App.Controllers.OUTableController"
+            minHeight="200"
+            stylesheets="@../css/table.css"
+>
+    <TableView fx:id="table" fixedCellSize="40">
+        <columns>
+            <TableColumn text="Name" fx:id="nameColumn" sortable="false"/>
+            <TableColumn text="Fixed cost" fx:id="fCostColumn" sortable="false"/>
+            <TableColumn text="Proportional cost" fx:id="pCostColumn" sortable="false"/>
+            <TableColumn text="Upper bound" fx:id="upperBoundColumn" sortable="false"/>
+            <TableColumn text="Input" fx:id="inputColumn" sortable="false"/>
+            <TableColumn text="Output" fx:id="outputColumn" sortable="false"/>
+        </columns>
+    </TableView>
+</ScrollPane>

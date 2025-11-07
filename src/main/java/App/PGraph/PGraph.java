@@ -77,7 +77,10 @@ public class PGraph {
                 node.getSolutionStatus().setValue(sol.objective().value());
 
                 HashSet<VariableState> currentVariables = new HashSet<>();
-                Arrays.stream(sol.variables()).iterator().forEachRemaining(variable -> currentVariables.add(new VariableState(variable.name(), variable.solutionValue())));
+                Arrays.stream(sol.variables()).iterator().forEachRemaining(
+                    variable -> currentVariables.add(
+                      new VariableState(variable.name(), variable.solutionValue()))
+                    );
 
                 node.getSolutionStatus().setVariables(currentVariables);
             }

@@ -8,6 +8,7 @@ import App.PGraph.Entities.OperatingUnit;
 import App.PGraph.Utils.VariableState;
 import App.Util.LaTeXNode;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
@@ -31,6 +32,8 @@ import java.util.Comparator;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 /**
  * Process Network Synthesis controller. This class is the main controller of the application.
@@ -166,15 +169,20 @@ public class PNS {
             //Zoom on ctrl + scroll
             scroll.addEventFilter(ScrollEvent.SCROLL, event -> {
                 if (event.isControlDown() && (isFullScreen || !canvas_container.getChildren().isEmpty())) {
-                    double zoomFactor = 1.05;
-                    double deltaY = event.getDeltaY();
+                    double zoomFactor = 1;
 
-                    if (deltaY < 0) {
-                        zoomFactor = 2.0 - zoomFactor;
+                    if (event.getDeltaY() > 0){
+                      zoomFactor = 1.2;
+                    }
+                    else if (event.getDeltaY() < 0) {
+                      zoomFactor = 0.9;
                     }
 
-                    canvas_container.setScaleX(canvas_container.getScaleX() * zoomFactor);
-                    canvas_container.setScaleY(canvas_container.getScaleY() * zoomFactor);
+                    double scaleX = canvas_container.getScaleX() * zoomFactor;
+                    double scaleY = canvas_container.getScaleY() * zoomFactor;
+
+                    canvas_container.setScaleX(scaleX);
+                    canvas_container.setScaleY(scaleY);
                     event.consume();
                 }
             });
@@ -182,12 +190,18 @@ public class PNS {
             // Zoom in and out on ctrl + +/-
             scroll.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
                 if (event.isControlDown() && (isFullScreen || !canvas_container.getChildren().isEmpty())) {
-                    if (event.getCode().equals(KeyCode.PLUS) || event.getCode().equals(KeyCode.ADD)) {
-                        canvas_container.setScaleX(canvas_container.getScaleX() * 1.1);
-                        canvas_container.setScaleY(canvas_container.getScaleY() * 1.1);
-                    } else if (event.getCode().equals(KeyCode.MINUS) || event.getCode().equals(KeyCode.SUBTRACT)) {
-                        canvas_container.setScaleX(canvas_container.getScaleX() * 0.9);
-                        canvas_container.setScaleY(canvas_container.getScaleY() * 0.9);
+                    switch (event.getCode()) {
+                        case PLUS:
+                        case EQUALS: // works on most keyboards
+                        case ADD:
+                            canvas_container.setScaleX(canvas_container.getScaleX() * 1.1);
+                            canvas_container.setScaleY(canvas_container.getScaleY() * 1.1);
+                            break;
+                        case MINUS:
+                        case SUBTRACT:
+                            canvas_container.setScaleX(canvas_container.getScaleX() * 0.9);
+                            canvas_container.setScaleY(canvas_container.getScaleY() * 0.9);
+                            break;
                     }
                 }
             });
@@ -276,22 +290,33 @@ public class PNS {
      * @see Material
      */
     private void loadGraph(ArrayList<OperatingUnit> units, ArrayList<Material> materials) {
+        Logger logger = Logger.getLogger("PNS.loadGraph");
+        logger.setLevel(Level.INFO);
+
+        logger.info("Starting loadGraph with " + units.size() + " units and " + materials.size() + " materials");
+
         FXPGraph graph = new FXPGraph(units);
+        logger.info("FXPGraph created");
 
         // Add the materials and operating units to their tables
         materialsTableController.clear();
         for (Material material : materials) {
             materialsTableController.addMaterial(material);
         }
+        logger.info("Materials added");
 
         ouTableController.clear();
         for (OperatingUnit unit : units) {
             ouTableController.addOperatingUnit(unit);
         }
+        logger.info("Operating units added");
 
+        logger.info("Drawing...");
         // Clear the canvas to avoid overlapping and add the new graph
         canvas_container.getChildren().clear();
         var draw = graph.draw();
+
+        logger.info("Graph drawed");
 
         canvas_container.getChildren().add(new StackPane(draw));
         canvas_container.setAlignment(Pos.CENTER);
@@ -299,14 +324,21 @@ public class PNS {
 
         canvas_scroll.setPannable(true);
 
+        logger.info("Initializing calculations");
+
         //Show best solution
         var best = graph.getBestNode();
+
+
         if (best != null) {
+            logger.info("Best node obtained");
+
             // Show the formula
             best_formula.getChildren().clear();
             ArrayList<VariableState> variables = new ArrayList<>(best.getSolutionStatus().getVariables());
             variables.sort(Comparator.comparing(VariableState::getName));
 
+            logger.info("Obtaining variables");
 
             VariableState[] xVariables = new VariableState[units.size()];
             VariableState[] yVariables = new VariableState[units.size()];
@@ -322,6 +354,8 @@ public class PNS {
                     yVariables[indexY++] = variable;
                 }
             }
+
+            logger.info("Variables obtained");
 
             Function<VariableState, String> variableValueText = (variable) -> variable.getValue() % 1 == 0 ? String.valueOf((int) variable.getValue()) : String.valueOf(variable.getValue());
             StringBuilder latex = new StringBuilder("Minimize: ");
@@ -351,17 +385,37 @@ public class PNS {
 
             String latexHeader = "Minimize: $\\sum_{i=1}^{n} \\left(\\left(Cf_i\\times Y_i:\\{0, 1\\}\\right) + \\left(Cp_i \\times X_i\\right)\\right)= $";
 
-            HBox formula = new HBox(LaTeXNode.createLaTeXImage(latexHeader, 16, java.awt.Color.WHITE));
-            HBox solution = new HBox(LaTeXNode.createLaTeXImage(latex.toString(), 16, java.awt.Color.WHITE));
 
-            var bestDraw = graph.getBestNode().getDraw();
-            graph.setPopup(best, bestDraw);
+            logger.info("Creating... LaTeX label layout");
 
-            formula.getChildren().add(bestDraw);
-            formula.setAlignment(Pos.CENTER_LEFT);
+            new Thread(() -> {
+                var formulaNode = LaTeXNode.createLaTeXImage(latexHeader, 16, java.awt.Color.WHITE);
+                var solutionNode = LaTeXNode.createLaTeXImage(latex.toString(), 16, java.awt.Color.WHITE);
 
-            best_formula.getChildren().add(formula);
-            best_formula.getChildren().add(solution);
+
+                logger.info("Latex images created, drawing...");
+
+                Platform.runLater(() -> {
+                    HBox formula = new HBox(formulaNode);
+                    HBox solution = new HBox(solutionNode);
+                    best_formula.getChildren().addAll(formula, solution);
+                    logger.info("LaTeX label created");
+
+                    logger.info("Drawing best node...");
+                    var bestDraw = graph.getBestNode().getDraw();
+                    graph.setPopup(best, bestDraw);
+                    logger.info("Note popup: done");
+
+                    formula.getChildren().add(bestDraw);
+                    formula.setAlignment(Pos.CENTER_LEFT);
+
+
+                    logger.info("Adding formula and solution");
+                    best_formula.getChildren().add(formula);
+                    best_formula.getChildren().add(solution);
+                    logger.info("Done");
+                });
+            }).start();
         }
 
         // Show popup on click
@@ -392,84 +446,88 @@ public class PNS {
             return;
         }
 
-        String[] headers = {"materials:", "operating_units:", "material_to_operating_unit_flow_rates:"};
+        Thread loadThread = new Thread(() -> {
+          String[] headers = {"materials:", "operating_units:", "material_to_operating_unit_flow_rates:"};
 
-        ArrayList<Material> materials = new ArrayList<>();
-        ArrayList<OperatingUnit> operatingUnits = new ArrayList<>();
+          ArrayList<Material> materials = new ArrayList<>();
+          ArrayList<OperatingUnit> operatingUnits = new ArrayList<>();
 
-        int current_header = -1;
+          int current_header = -1;
 
-        try {
-            java.util.Scanner scanner = new java.util.Scanner(file);
-            while (scanner.hasNextLine()) {
-                String line = scanner.nextLine().strip();
+          try {
+              java.util.Scanner scanner = new java.util.Scanner(file);
+              while (scanner.hasNextLine()) {
+                  String line = scanner.nextLine().strip();
 
-                if (Arrays.asList(headers).contains(line)) {
-                    current_header++;
-                    continue;
-                }
+                  if (Arrays.asList(headers).contains(line)) {
+                      current_header++;
+                      continue;
+                  }
 
-                if (current_header < 0) continue;
-                if (line.isBlank()) continue;
+                  if (current_header < 0) continue;
+                  if (line.isBlank()) continue;
 
-                if (current_header == 0) { //Materials
-                    Material material = lineToMaterial(line);
-                    materials.add(material);
-                } else if (current_header == 1) { // Operating Units
-                    operatingUnits.add(lineToOperatingUnit(line));
-                } else if (current_header == 2) { // Flow rates
-                    var parts = line.split(":");
-                    if (parts.length != 2) {
-                        throw new IllegalArgumentException("Invalid flow rate line. [" + line + "]");
-                    }
+                  if (current_header == 0) { //Materials
+                      Material material = lineToMaterial(line);
+                      materials.add(material);
+                  } else if (current_header == 1) { // Operating Units
+                      operatingUnits.add(lineToOperatingUnit(line));
+                  } else if (current_header == 2) { // Flow rates
+                      var parts = line.split(":");
+                      if (parts.length != 2) {
+                          throw new IllegalArgumentException("Invalid flow rate line. [" + line + "]");
+                      }
 
-                    var data = parts[1].strip().split("=>");
-                    if (data.length != 2) {
-                        throw new IllegalArgumentException("Invalid flow rate data.[" + parts[1] + "]");
-                    }
+                      var data = parts[1].strip().split("=>");
+                      if (data.length != 2) {
+                          throw new IllegalArgumentException("Invalid flow rate data.[" + parts[1] + "]");
+                      }
 
-                    var ou_name = parts[0].strip();
-                    var input = data[0].strip();
-                    var output = data[1].strip();
+                      var ou_name = parts[0].strip();
+                      var input = data[0].strip();
+                      var output = data[1].strip();
 
-                    OperatingUnit ou = null;
-                    Material inputMaterial = null;
-                    Material outputMaterial = null;
+                      OperatingUnit ou = null;
+                      Material inputMaterial = null;
+                      Material outputMaterial = null;
 
-                    for (OperatingUnit unit : operatingUnits) {
-                        if (unit.getName().equals(ou_name)) {
-                            ou = unit;
-                            break;
-                        }
-                    }
+                      for (OperatingUnit unit : operatingUnits) {
+                          if (unit.getName().equals(ou_name)) {
+                              ou = unit;
+                              break;
+                          }
+                      }
 
-                    if (ou == null) {
-                        throw new IllegalArgumentException("The required operating unit was not found. [" + ou_name + "]");
-                    }
+                      if (ou == null) {
+                          throw new IllegalArgumentException("The required operating unit was not found. [" + ou_name + "]");
+                      }
 
-                    for (Material material : materials) {
-                        if (material.getName().equals(input)) {
-                            inputMaterial = material;
-                        }
+                      for (Material material : materials) {
+                          if (material.getName().equals(input)) {
+                              inputMaterial = material;
+                          }
 
-                        if (material.getName().equals(output)) {
-                            outputMaterial = material;
-                        }
-                    }
+                          if (material.getName().equals(output)) {
+                              outputMaterial = material;
+                          }
+                      }
 
-                    if (inputMaterial == null || outputMaterial == null) {
-                        throw new IllegalArgumentException("Invalid material name");
-                    }
+                      if (inputMaterial == null || outputMaterial == null) {
+                          throw new IllegalArgumentException("Invalid material name");
+                      }
 
-                    ou.setInputMaterial(inputMaterial);
-                    ou.setOutputMaterial(outputMaterial);
-                }
-            }
+                      ou.setInputMaterial(inputMaterial);
+                      ou.setOutputMaterial(outputMaterial);
+                  }
+              }
 
-            loadGraph(operatingUnits, materials);
-        } catch (java.io.FileNotFoundException e) {
-            System.out.println("An error occurred.");
-        }
+              Platform.runLater(() -> loadGraph(operatingUnits, materials));
+          } catch (java.io.FileNotFoundException e) {
+              System.out.println("Error: " + e.getMessage());
+          }
+        });
+
+        loadThread.start();
     }
 
     /**
